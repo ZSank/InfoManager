@@ -1,4 +1,4 @@
-package com.app.taskman
+package com.app.infomanager
 
 import org.junit.Test
 

@@ -19,5 +19,5 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = "TaskMan"
+rootProject.name = "infomanager"
 include(":app")

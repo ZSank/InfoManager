@@ -1,4 +1,4 @@
-package com.app.taskman.ui.theme
+package com.app.infomanager.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

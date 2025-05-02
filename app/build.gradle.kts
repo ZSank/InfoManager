@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-	namespace = "com.app.taskman"
+	namespace = "com.app.infomanager"
 	compileSdk = 35
 	
 	defaultConfig {
-		applicationId = "com.app.taskman"
+		applicationId = "com.app.infomanager"
 		minSdk = 26
 		targetSdk = 35
 		versionCode = 1
