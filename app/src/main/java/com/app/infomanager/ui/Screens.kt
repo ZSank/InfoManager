@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -118,16 +120,17 @@ fun HomeScreen(
 		LazyColumn(
 			modifier
 				.padding(innerPadding)
-				.padding(start = 10.dp, end = 10.dp)
+				.padding(start = 20.dp, end = 20.dp)
 		) {
-			items(items = allItems) { item ->
+			itemsIndexed(allItems) { index, item ->
 				ItemUi(
 					modifier.clickable { navigateToView(item) }, item
 				)
+				if (index < allItems.lastIndex) {
+					HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+				}
 			}
-			item {
-				Text(text = "End", modifier.padding(top = 10.dp, bottom = 10.dp))
-			}
+			if (allItems.isEmpty()) item { Text("No Items...", color = Color.LightGray) }
 		}
 	}
 }
@@ -251,7 +254,7 @@ fun ItemUi(modifier: Modifier = Modifier, item: Item?) {
 	Column(
 		modifier
 			.fillMaxWidth()
-			.padding(top = 5.dp, bottom = 5.dp)
+			.padding(top = 10.dp, bottom = 10.dp)
 	) {
 		item?.let {
 			Text("Name: ${item.name}")
