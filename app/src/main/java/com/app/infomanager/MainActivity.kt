@@ -18,22 +18,11 @@ import com.app.infomanager.ui.HomeScreen
 import com.app.infomanager.ui.ViewItemScreen
 import com.app.infomanager.ui.theme.InfomanagerTheme
 import com.app.infomanager.ui.viewModel.SharedViewModel
-import com.google.android.odml.image.MlImage
-import com.google.mlkit.vision.barcode.BarcodeScanner
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-	val options = BarcodeScannerOptions.Builder().setBarcodeFormats(
-		Barcode.FORMAT_QR_CODE, Barcode.FORMAT_AZTEC
-	).enableAllPotentialBarcodes().build()
-	
-	val scanner = BarcodeScanning.getClient()
-	
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
@@ -41,39 +30,6 @@ class MainActivity : ComponentActivity() {
 		setContent {
 			InfomanagerTheme {
 				InfoManagerApp()
-			}
-		}
-	}
-}
-
-fun processResult(scanner: BarcodeScanner, image: MlImage) {
-	val result = scanner.process(image).addOnSuccessListener { barcodes ->
-		process(barcodes)
-	}.addOnFailureListener {
-		// Task failed with an exception
-		// ...
-	}
-}
-
-fun process(barcodes: List<Barcode>) {
-	for (barcode in barcodes) {
-		val bounds = barcode.boundingBox
-		val corners = barcode.cornerPoints
-		
-		val rawValue = barcode.rawValue
-		
-		val valueType = barcode.valueType
-		// See API reference for complete list of supported types
-		when (valueType) {
-			Barcode.TYPE_WIFI -> {
-				val ssid = barcode.wifi!!.ssid
-				val password = barcode.wifi!!.password
-				val type = barcode.wifi!!.encryptionType
-			}
-			
-			Barcode.TYPE_URL -> {
-				val title = barcode.url!!.title
-				val url = barcode.url!!.url
 			}
 		}
 	}
