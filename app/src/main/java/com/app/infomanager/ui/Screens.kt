@@ -55,6 +55,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.app.infomanager.R
 import com.app.infomanager.data.models.Item
 import com.app.infomanager.ui.viewModel.SharedViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 
@@ -73,16 +77,16 @@ fun HomeScreen(
 	val allItems by vm.allItems.collectAsState()
 	Scaffold(
 		floatingActionButton = {
-			Column {
-				FloatingActionButton(navigateToAdd) {
-					Icon(Icons.Default.Add, contentDescription = "Menu")
-				}
-				Spacer(modifier.height(20.dp))
+			Column(modifier.padding(20.dp)) {
 				FloatingActionButton(navigateToScanner) {
 					Icon(
 						painter = painterResource(id = R.drawable.barcode_scanner),
 						contentDescription = "Scanner"
 					)
+				}
+				Spacer(modifier.height(20.dp))
+				FloatingActionButton(navigateToAdd) {
+					Icon(Icons.Default.Add, contentDescription = "Menu")
 				}
 			}
 		}, topBar = {
@@ -259,58 +263,89 @@ fun ItemUi(modifier: Modifier = Modifier, item: Item?) {
 }
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun BarcodeScannerScreen(
-	navigateOnScanned: (String) -> Unit
+	modifier: Modifier = Modifier,
+	navigateOnScanned: (String) -> Unit,
 ) {
 	val context = LocalContext.current
 	val lifecycleOwner = LocalLifecycleOwner.current
+	val cameraPermissionState = rememberPermissionState(
+		android.Manifest.permission.CAMERA
+	)
 	
-	AndroidView(
-		factory = { ctx ->
-			val previewView = PreviewView(ctx)
-			val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-			
-			cameraProviderFuture.addListener({
-				val cameraProvider = cameraProviderFuture.get()
-				val preview = androidx.camera.core.Preview.Builder().build().also {
-					it.surfaceProvider = previewView.surfaceProvider
-				}
-				
-				val barcodeScanner = BarcodeScanning.getClient()
-				
-				val imageAnalyzer = ImageAnalysis.Builder()
-					.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build().also {
-						it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
-							val mediaImage = imageProxy.image
-							if (mediaImage != null) {
-								val inputImage = InputImage.fromMediaImage(
-									mediaImage, imageProxy.imageInfo.rotationDegrees
-								)
-								barcodeScanner.process(inputImage)
-									.addOnSuccessListener { barcodes ->
-										barcodes.firstOrNull()?.rawValue?.let { code ->
-											Log.d("mLog", "BarcodeScannerScreen: $code")
-											navigateOnScanned(code)
-										}
-									}.addOnCompleteListener {
+	Scaffold() { ip ->
+		if (cameraPermissionState.status.isGranted) {
+			AndroidView(
+				factory = { ctx ->
+					val previewView = PreviewView(ctx)
+					val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+					
+					cameraProviderFuture.addListener({
+						val cameraProvider = cameraProviderFuture.get()
+						val preview = androidx.camera.core.Preview.Builder().build().also {
+							it.surfaceProvider = previewView.surfaceProvider
+						}
+						
+						val barcodeScanner = BarcodeScanning.getClient()
+						
+						val imageAnalyzer = ImageAnalysis.Builder()
+							.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+							.build()
+							.also {
+								it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
+									val mediaImage = imageProxy.image
+									if (mediaImage != null) {
+										val inputImage = InputImage.fromMediaImage(
+											mediaImage, imageProxy.imageInfo.rotationDegrees
+										)
+										barcodeScanner.process(inputImage)
+											.addOnSuccessListener { barcodes ->
+												barcodes.firstOrNull()?.rawValue?.let { code ->
+													Log.d("mLog", "BarcodeScannerScreen: $code")
+													navigateOnScanned(code)
+												}
+											}.addOnCompleteListener {
+												imageProxy.close()
+											}
+									} else {
 										imageProxy.close()
 									}
-							} else {
-								imageProxy.close()
+								}
 							}
-						}
-					}
-				
-				val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-				
-				cameraProvider.unbindAll()
-				cameraProvider.bindToLifecycle(
-					lifecycleOwner, cameraSelector, preview, imageAnalyzer
-				)
-			}, ContextCompat.getMainExecutor(ctx))
-			
-			previewView
-		}, modifier = Modifier.fillMaxSize()
-	)
+						
+						val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+						
+						cameraProvider.unbindAll()
+						cameraProvider.bindToLifecycle(
+							lifecycleOwner, cameraSelector, preview, imageAnalyzer
+						)
+					}, ContextCompat.getMainExecutor(ctx))
+					
+					previewView
+				}, modifier = Modifier.fillMaxSize()
+			)
+		} else {
+			Column(
+				modifier
+					.padding(ip)
+					.padding(20.dp)
+					.padding(top = 30.dp)
+					.fillMaxSize(),
+				horizontalAlignment = Alignment.CenterHorizontally
+			) {
+				val textToShow = if (cameraPermissionState.status.shouldShowRationale) {
+					"To use barcode scanner. Please grant the permission."
+				} else {
+					"Camera permission required for Barcode scanner"
+				}
+				Text(textToShow, modifier.padding(bottom = 50.dp))
+				Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
+					Text("Request permission")
+				}
+			}
+		}
+	}
+	
 }
