@@ -1,48 +1,11 @@
 package com.app.infomanager
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -50,15 +13,27 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.app.infomanager.data.models.Item
 import com.app.infomanager.ui.AddItemScreen
+import com.app.infomanager.ui.BarcodeScannerScreen
 import com.app.infomanager.ui.HomeScreen
 import com.app.infomanager.ui.ViewItemScreen
 import com.app.infomanager.ui.theme.InfomanagerTheme
 import com.app.infomanager.ui.viewModel.SharedViewModel
+import com.google.android.odml.image.MlImage
+import com.google.mlkit.vision.barcode.BarcodeScanner
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+	val options = BarcodeScannerOptions.Builder().setBarcodeFormats(
+		Barcode.FORMAT_QR_CODE, Barcode.FORMAT_AZTEC
+	).enableAllPotentialBarcodes().build()
+	
+	val scanner = BarcodeScanning.getClient()
+	
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
@@ -66,6 +41,39 @@ class MainActivity : ComponentActivity() {
 		setContent {
 			InfomanagerTheme {
 				InfoManagerApp()
+			}
+		}
+	}
+}
+
+fun processResult(scanner: BarcodeScanner, image: MlImage) {
+	val result = scanner.process(image).addOnSuccessListener { barcodes ->
+		process(barcodes)
+	}.addOnFailureListener {
+		// Task failed with an exception
+		// ...
+	}
+}
+
+fun process(barcodes: List<Barcode>) {
+	for (barcode in barcodes) {
+		val bounds = barcode.boundingBox
+		val corners = barcode.cornerPoints
+		
+		val rawValue = barcode.rawValue
+		
+		val valueType = barcode.valueType
+		// See API reference for complete list of supported types
+		when (valueType) {
+			Barcode.TYPE_WIFI -> {
+				val ssid = barcode.wifi!!.ssid
+				val password = barcode.wifi!!.password
+				val type = barcode.wifi!!.encryptionType
+			}
+			
+			Barcode.TYPE_URL -> {
+				val title = barcode.url!!.title
+				val url = barcode.url!!.url
 			}
 		}
 	}
@@ -80,25 +88,45 @@ object AddItem
 @Serializable
 data class ViewItem(val uid: Int)
 
+@Serializable
+data class BarcodeComp(val isNew: Boolean)
+
 @Composable
 fun InfoManagerApp(modifier: Modifier = Modifier) {
+	val vm: SharedViewModel = hiltViewModel()
 	val navController = rememberNavController()
 	NavHost(navController = navController, startDestination = Home) {
 		composable<Home> {
-			HomeScreen(navigateToView = { item ->
-				navController.navigate(
-					route = ViewItem(
-						item.uid
+			HomeScreen(
+				navigateToView = { item ->
+					navController.navigate(
+						route = ViewItem(
+							item.uid
+						)
 					)
-				)
-			}, navigateToAdd = { navController.navigate(route = AddItem) })
+				},
+				navigateToAdd = { navController.navigate(route = AddItem) },
+				vm = vm,
+				navigateToScanner = { navController.navigate(route = BarcodeComp(true)) })
 		}
 		composable<ViewItem> { backStackEntry ->
 			val viewItem = backStackEntry.toRoute<ViewItem>()
 			ViewItemScreen(modifier, Item(uid = viewItem.uid), navigateUp = {
 				navController.navigateUp()
+			}, vm)
+		}
+		composable<AddItem> {
+			AddItemScreen(
+				modifier, navigateUp = { navController.navigateUp() }, vm,
+				navigateToScanner = { navController.navigate(route = BarcodeComp(false)) })
+		}
+		composable<BarcodeComp> { entry ->
+			val isNew = entry.toRoute<BarcodeComp>().isNew
+			BarcodeScannerScreen(navigateOnScanned = { code ->
+				vm.barcode = code
+				navController.popBackStack()
+				if (isNew) navController.navigate(route = AddItem)
 			})
 		}
-		composable<AddItem> { AddItemScreen(modifier, navigateUp = { navController.navigateUp() }) }
 	}
 }

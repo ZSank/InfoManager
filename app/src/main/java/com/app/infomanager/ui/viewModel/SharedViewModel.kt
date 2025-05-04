@@ -26,6 +26,7 @@ class SharedViewModel @Inject constructor(
 ) : ViewModel() {
 	init {
 		getAllTasks()
+		log("Init")
 	}
 	
 	val emptyItem = Item("", "")
@@ -73,7 +74,6 @@ class SharedViewModel @Inject constructor(
 	}
 	
 	fun addCurrentItem() {
-		
 		add(
 			Item(
 				name,
@@ -108,6 +108,14 @@ class SharedViewModel @Inject constructor(
 		getRandomWord(5) + getRandomWord(5),
 		getRandomNumber(10).toLong()
 	)
+	
+	fun clearAllFields() {
+		name = ""
+		category = ""
+		barcode = "0"
+		qty = "0"
+		description = ""
+	}
 	
 	fun log(text: String = "", identifier: String = "") {
 		Log.d("Mlog", "$text: $identifier")

@@ -1,10 +1,18 @@
 package com.app.infomanager.ui
 
 import android.util.Log
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,27 +44,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.app.infomanager.R
 import com.app.infomanager.data.models.Item
 import com.app.infomanager.ui.viewModel.SharedViewModel
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-	modifier: Modifier = Modifier, navigateToView: (Item) -> Unit, navigateToAdd: () -> Unit
+	modifier: Modifier = Modifier,
+	navigateToView: (Item) -> Unit,
+	navigateToAdd: () -> Unit,
+	navigateToScanner: () -> Unit,
+	vm: SharedViewModel
 ) {
-	val vm: SharedViewModel = hiltViewModel()
 	val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 	var menuExpanded by remember { mutableStateOf(false) }
 	
 	val allItems by vm.allItems.collectAsState()
 	Scaffold(
 		floatingActionButton = {
-			FloatingActionButton(navigateToAdd) {
-				Icon(Icons.Default.Add, contentDescription = "Menu")
+			Column {
+				FloatingActionButton(navigateToAdd) {
+					Icon(Icons.Default.Add, contentDescription = "Menu")
+				}
+				Spacer(modifier.height(20.dp))
+				FloatingActionButton(navigateToScanner) {
+					Icon(
+						painter = painterResource(id = R.drawable.barcode_scanner),
+						contentDescription = "Scanner"
+					)
+				}
 			}
 		}, topBar = {
 			TopAppBar(title = { }, scrollBehavior = scrollBehavior, actions = {
@@ -103,8 +130,12 @@ fun HomeScreen(
 
 @Preview
 @Composable
-fun AddItemScreen(modifier: Modifier = Modifier, navigateUp: () -> Unit) {
-	val vm: SharedViewModel = hiltViewModel()
+fun AddItemScreen(
+	modifier: Modifier = Modifier,
+	navigateUp: () -> Unit,
+	vm: SharedViewModel,
+	navigateToScanner: () -> Unit
+) {
 	Scaffold { ip ->
 		Column(
 			modifier
@@ -129,16 +160,37 @@ fun AddItemScreen(modifier: Modifier = Modifier, navigateUp: () -> Unit) {
 			)
 			OutlinedTextField(
 				modifier = Modifier.fillMaxWidth(),
-				value = vm.barcode,
+				value = vm.qty,
 				onValueChange = {
-					vm.barcode = it
+					vm.qty = it
 				},
-				label = { Text(text = "BarCode") },
+				label = { Text(text = "Qty") },
 				textStyle = MaterialTheme.typography.bodyMedium,
 				singleLine = true,
 				keyboardOptions = KeyboardOptions.Default.copy(
 					keyboardType = KeyboardType.Number
 				)
+			)
+			OutlinedTextField(
+				modifier = Modifier.fillMaxWidth(),
+				value = vm.barcode,
+				onValueChange = {
+					vm.barcode = it
+				},
+				label = { Text(text = "Barcode") },
+				textStyle = MaterialTheme.typography.bodyMedium,
+				singleLine = true,
+				keyboardOptions = KeyboardOptions.Default.copy(
+					keyboardType = KeyboardType.Number
+				),
+				trailingIcon = {
+					IconButton(onClick = { navigateToScanner() }) {
+						Icon(
+							painter = painterResource(id = R.drawable.barcode_scanner),
+							contentDescription = "Scanner"
+						)
+					}
+				}
 			)
 			OutlinedTextField(
 				modifier = Modifier.fillMaxWidth(),
@@ -153,6 +205,7 @@ fun AddItemScreen(modifier: Modifier = Modifier, navigateUp: () -> Unit) {
 			
 			Button({
 				vm.addCurrentItem()
+				vm.clearAllFields()
 				navigateUp()
 			}) { Text("Add Item") }
 		}
@@ -160,11 +213,12 @@ fun AddItemScreen(modifier: Modifier = Modifier, navigateUp: () -> Unit) {
 }
 
 @Composable
-fun ViewItemScreen(modifier: Modifier = Modifier, item: Item, navigateUp: () -> Unit) {
-	val vm: SharedViewModel = hiltViewModel()
-	LaunchedEffect(item) {
-		Log.d("mLog", "ViewItemScreen: $item")
-	}
+fun ViewItemScreen(
+	modifier: Modifier = Modifier,
+	item: Item,
+	navigateUp: () -> Unit,
+	vm: SharedViewModel
+) {
 	val currentItem by vm.getItemById(item.uid).collectAsState(initial = null)
 	LaunchedEffect(currentItem) {
 		Log.d("mLog", "ViewItemScreen: $currentItem ")
@@ -202,4 +256,61 @@ fun ItemUi(modifier: Modifier = Modifier, item: Item?) {
 			Text("Qty:${item.qty}")
 		}
 	}
+}
+
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
+@Composable
+fun BarcodeScannerScreen(
+	navigateOnScanned: (String) -> Unit
+) {
+	val context = LocalContext.current
+	val lifecycleOwner = LocalLifecycleOwner.current
+	
+	AndroidView(
+		factory = { ctx ->
+			val previewView = PreviewView(ctx)
+			val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+			
+			cameraProviderFuture.addListener({
+				val cameraProvider = cameraProviderFuture.get()
+				val preview = androidx.camera.core.Preview.Builder().build().also {
+					it.surfaceProvider = previewView.surfaceProvider
+				}
+				
+				val barcodeScanner = BarcodeScanning.getClient()
+				
+				val imageAnalyzer = ImageAnalysis.Builder()
+					.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build().also {
+						it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
+							val mediaImage = imageProxy.image
+							if (mediaImage != null) {
+								val inputImage = InputImage.fromMediaImage(
+									mediaImage, imageProxy.imageInfo.rotationDegrees
+								)
+								barcodeScanner.process(inputImage)
+									.addOnSuccessListener { barcodes ->
+										barcodes.firstOrNull()?.rawValue?.let { code ->
+											Log.d("mLog", "BarcodeScannerScreen: $code")
+											navigateOnScanned(code)
+										}
+									}.addOnCompleteListener {
+										imageProxy.close()
+									}
+							} else {
+								imageProxy.close()
+							}
+						}
+					}
+				
+				val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+				
+				cameraProvider.unbindAll()
+				cameraProvider.bindToLifecycle(
+					lifecycleOwner, cameraSelector, preview, imageAnalyzer
+				)
+			}, ContextCompat.getMainExecutor(ctx))
+			
+			previewView
+		}, modifier = Modifier.fillMaxSize()
+	)
 }

@@ -71,4 +71,12 @@ dependencies {
 	
 	implementation("androidx.navigation:navigation-compose:2.8.9")
 	implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+	
+	implementation("com.google.mlkit:barcode-scanning:17.3.0")
+	implementation("com.google.accompanist:accompanist-permissions:0.37.2")
+	val camerax_version = "1.5.0-alpha06"
+	implementation("androidx.camera:camera-camera2:${camerax_version}")
+	implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+	implementation("androidx.camera:camera-view:${camerax_version}")
+	implementation("androidx.camera:camera-mlkit-vision:${camerax_version}")
 }
