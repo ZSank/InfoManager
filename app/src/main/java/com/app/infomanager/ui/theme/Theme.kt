@@ -50,7 +50,7 @@ fun InfomanagerTheme(
 	}
 	
 	MaterialTheme(
-		colorScheme = colorScheme,
+		colorScheme = LightColorScheme, //always light theme
 		typography = Typography,
 		content = content
 	)

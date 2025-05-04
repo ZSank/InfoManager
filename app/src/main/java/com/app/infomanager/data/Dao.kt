@@ -5,11 +5,18 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.app.infomanager.data.models.Item
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ItemDao {
 	@Query("SELECT * FROM item")
-	fun getAll(): List<Item>
+	fun getAll(): Flow<List<Item>>
+	
+	@Query("SELECT * FROM item ORDER BY uid ASC")
+	fun getAllTasks(): Flow<List<Item>>
+	
+	@Query("SELECT * FROM item WHERE uid = :uid")
+	fun getItemById(uid: Int): Flow<Item?>
 	
 	@Query("SELECT * FROM item WHERE uid IN (:itemIds)")
 	fun loadAllByIds(itemIds: IntArray): List<Item>
@@ -21,8 +28,14 @@ interface ItemDao {
 	fun findByName(first: String, last: String): Item
 	
 	@Insert
-	fun insertAll(vararg items: Item)
+	fun addAll(vararg items: Item)
+	
+	@Insert
+	suspend fun add(item: Item)
 	
 	@Delete
-	fun delete(item: Item)
+	suspend fun delete(item: Item)
+	
+	@Query("DELETE FROM Item")
+	suspend fun deleteAll()
 }
