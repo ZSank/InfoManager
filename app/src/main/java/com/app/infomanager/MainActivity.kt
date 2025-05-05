@@ -12,10 +12,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.app.infomanager.data.models.Item
-import com.app.infomanager.ui.AddItemScreen
-import com.app.infomanager.ui.BarcodeScannerScreen
-import com.app.infomanager.ui.HomeScreen
-import com.app.infomanager.ui.ViewItemScreen
+import com.app.infomanager.ui.screens.AddItemScreen
+import com.app.infomanager.ui.screens.BarcodeScannerScreen
+import com.app.infomanager.ui.screens.HomeScreen
+import com.app.infomanager.ui.screens.ViewItemScreen
 import com.app.infomanager.ui.theme.InfomanagerTheme
 import com.app.infomanager.ui.viewModel.SharedViewModel
 import dagger.hilt.android.AndroidEntryPoint

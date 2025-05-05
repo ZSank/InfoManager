@@ -53,7 +53,8 @@ Check out the app in action:
 
 Download here:    
 👉 [Github Release](https://github.com/ZSank/InfoManager/releases/download/v1.0/Info-manager-app-release-unsigned.apk)
-- May required developer mode turned on, since unsigned apk. 
+
+- May required developer mode turned on, since unsigned apk.
 
 ---  
 

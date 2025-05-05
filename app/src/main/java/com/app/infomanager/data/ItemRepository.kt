@@ -7,7 +7,7 @@ import javax.inject.Inject
 class ItemRepository @Inject constructor(private val dao: ItemDao) {
 	val getAllItems: Flow<List<Item>> = dao.getAll()
 	
-	fun getItemById(id: Int): Flow<Item?> =  dao.getItemById(id)
+	fun getItemById(id: Int): Flow<Item?> = dao.getItemById(id)
 	
 	suspend fun add(item: Item) {
 		dao.add(item)
