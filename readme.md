@@ -47,6 +47,14 @@ track their inventory in real-time.
 Check out the app in action:    
 👉 [YouTube Demo](https://youtube.com/shorts/JWv972vaMu0?feature=share)
 
+--- 
+
+## 📦 Download
+
+Download here:    
+👉 [Github Release](https://github.com/ZSank/InfoManager/releases/download/v1.0/Info-manager-app-release-unsigned.apk)
+- May required developer mode turned on, since unsigned apk. 
+
 ---  
 
 ## 📸 Screenshots
