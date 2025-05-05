@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -143,6 +144,7 @@ fun AddItemScreen(
 	vm: SharedViewModel,
 	navigateToScanner: () -> Unit
 ) {
+	val keyboardController = LocalSoftwareKeyboardController.current
 	Scaffold { ip ->
 		Column(
 			modifier
@@ -211,6 +213,7 @@ fun AddItemScreen(
 			)
 			
 			Button({
+				keyboardController?.hide()
 				vm.addCurrentItem()
 				vm.clearAllFields()
 				navigateUp()

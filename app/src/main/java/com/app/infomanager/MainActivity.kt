@@ -65,8 +65,8 @@ fun InfoManagerApp(modifier: Modifier = Modifier) {
 				vm = vm,
 				navigateToScanner = { navController.navigate(route = BarcodeComp(true)) })
 		}
-		composable<ViewItem> { backStackEntry ->
-			val viewItem = backStackEntry.toRoute<ViewItem>()
+		composable<ViewItem> { entry ->
+			val viewItem = entry.toRoute<ViewItem>()
 			ViewItemScreen(modifier, Item(uid = viewItem.uid), navigateUp = {
 				navController.navigateUp()
 			}, vm)
@@ -77,11 +77,11 @@ fun InfoManagerApp(modifier: Modifier = Modifier) {
 				navigateToScanner = { navController.navigate(route = BarcodeComp(false)) })
 		}
 		composable<BarcodeComp> { entry ->
-			val isNew = entry.toRoute<BarcodeComp>().isNew
+			val isFromHome = entry.toRoute<BarcodeComp>().isNew
 			BarcodeScannerScreen(navigateOnScanned = { code ->
 				vm.barcode = code
 				navController.popBackStack()
-				if (isNew) navController.navigate(route = AddItem)
+				if (isFromHome) navController.navigate(route = AddItem)
 			})
 		}
 	}
